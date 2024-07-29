@@ -5,6 +5,9 @@ import keras
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Dropout, BatchNormalization
 from keras.utils import to_categorical
+from scikeras.wrappers import KerasClassifier
+from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import cross_val_score
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -42,28 +45,30 @@ x_test.fillna(x_test.mean(), inplace=True)
 x_test = (x_test - x_test.mean()) / x_test.std()
 x_test
 t_train = to_categorical(t_train, num_classes=2)
-#NNを作成する
-model = Sequential()
-model.add(Dense(200, input_dim=8))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-model.add(Dense(200))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-model.add(Dense(200))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-model.add(Dense(200))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-model.add(Dense(2, activation='softmax'))
-model.compile(optimizer='adam', loss='categorical_crossentropy')
-model.fit(x_train,t_train,epochs=100,batch_size=5)
-t_test = model.predict(x_test)
-t_test = np.argmax(t_test, axis = 1)
-x_test["Survived"] = t_test
-t_output = x_test["Survived"]
-t_output.index = t_output.index + 892
-t_output.index.rename('PassengerId', inplace=True)
-# DataFrameをCSVに出力
-t_output.to_csv("output.csv")
+
+# モデルの作成を行う関数を定義します。
+def create_model():
+    model = Sequential()
+    model.add(Dense(100, input_dim=8))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Dense(100))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Dense(100))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Dense(100))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Dense(2, activation='softmax'))
+    model.compile(optimizer='adam', loss='categorical_crossentropy')
+    return model
+
+# モデルをKerasClassifierでラップします。
+model = KerasClassifier(build_fn=create_model, epochs=50, batch_size=5)
+
+scores = cross_val_score(model, x_train, t_train, cv=5)
+
+print('Cross-validation scores: ', scores)
+print('Average cross-validation score: ', scores.mean())
